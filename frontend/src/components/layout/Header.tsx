@@ -25,18 +25,18 @@ export function Header() {
             <>
               <span className="text-sm text-muted-foreground">{user?.email}</span>
               <Button variant="outline" size="sm" onClick={handleLogout}>
-                Выйти
+                Sign out
               </Button>
             </>
           ) : (
             <>
               <Link href="/login">
                 <Button variant="ghost" size="sm">
-                  Войти
+                  Sign in
                 </Button>
               </Link>
               <Link href="/register">
-                <Button size="sm">Регистрация</Button>
+                <Button size="sm">Register</Button>
               </Link>
             </>
           )}

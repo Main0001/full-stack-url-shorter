@@ -26,7 +26,7 @@ export class RedirectController {
     const userAgent = req.headers['user-agent'] || '';
     const referrer = req.headers['referer'] || null;
 
-    // Fire-and-forget: не ждём записи клика
+    // Fire-and-forget: do not wait for click recording
     this.clicksService
       .recordClick(link.id, ip, userAgent, referrer)
       .catch(() => null);

@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
+import { ThemeProvider } from 'next-themes';
 import { StoreProvider } from '@/store/provider';
 import { Toaster } from '@/components/ui/sonner';
+import { AuthInit } from '@/components/auth/AuthInit';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -15,8 +17,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Shortify — сокращатель ссылок',
-  description: 'Сокращайте ссылки и отслеживайте статистику переходов',
+  title: 'Shortify — URL Shortener',
+  description: 'Shorten your links and track click statistics',
 };
 
 export default function RootLayout({
@@ -25,12 +27,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ru">
+    <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <StoreProvider>
-          {children}
-          <Toaster />
-        </StoreProvider>
+        <ThemeProvider attribute="class" defaultTheme="light" disableTransitionOnChange>
+          <StoreProvider>
+            <AuthInit />
+            {children}
+            <Toaster />
+          </StoreProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

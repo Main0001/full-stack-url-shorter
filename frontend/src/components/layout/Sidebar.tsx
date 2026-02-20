@@ -6,8 +6,8 @@ import { LayoutDashboard, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
-  { href: '/dashboard', label: 'Мои ссылки', icon: LayoutDashboard },
-  { href: '/dashboard/create', label: 'Создать ссылку', icon: Plus },
+  { href: '/dashboard', label: 'My Links', icon: LayoutDashboard },
+  { href: '/dashboard/create', label: 'Create Link', icon: Plus },
 ];
 
 export function Sidebar() {

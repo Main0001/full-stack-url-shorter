@@ -6,7 +6,7 @@ const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
 });
 
-// Request interceptor — добавляем Bearer token из localStorage
+// Request interceptor — attach Bearer token from localStorage
 api.interceptors.request.use((config) => {
   const token = getAccessToken();
   if (token) {
@@ -15,7 +15,7 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Очередь запросов, ожидающих обновления токена
+// Queue of requests waiting for token refresh
 type QueueItem = {
   resolve: (token: string) => void;
   reject: (reason?: unknown) => void;
@@ -35,7 +35,7 @@ const processQueue = (error: unknown, token: string | null = null) => {
   failedQueue = [];
 };
 
-// Response interceptor — при 401 обновляем токен и повторяем запрос
+// Response interceptor — on 401 refresh the token and retry the request
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
