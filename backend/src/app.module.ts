@@ -5,6 +5,10 @@ import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { LinksModule } from './links/links.module';
+import { GeoModule } from './geo/geo.module';
+import { ClicksModule } from './clicks/clicks.module';
+import { RedirectModule } from './redirect/redirect.module';
+import { StatsModule } from './stats/stats.module';
 
 @Module({
   imports: [
@@ -15,6 +19,10 @@ import { LinksModule } from './links/links.module';
     PrismaModule,
     AuthModule,
     LinksModule,
+    GeoModule,
+    ClicksModule,
+    RedirectModule,
+    StatsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -18,6 +18,9 @@ export const envConfig = {
   // URLs
   frontendUrl: env.get('FRONTEND_URL').default('http://localhost:3000').asString(),
   backendUrl: env.get('BACKEND_URL').default('http://localhost:3001').asString(),
+
+  // Geo
+  geoTimeout: env.get('GEO_TIMEOUT').default(3000).asIntPositive(), // 3 seconds
 };
 
 export type EnvConfig = typeof envConfig;
