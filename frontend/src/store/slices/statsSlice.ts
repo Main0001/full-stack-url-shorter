@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import axios from 'axios';
+import api from '@/lib/api';
 import type { StatsState, StatsResponse, StatsSummary } from '@/types';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export const fetchStats = createAsyncThunk<
   StatsResponse,
@@ -9,37 +9,32 @@ export const fetchStats = createAsyncThunk<
   { rejectValue: string }
 >('stats/fetch', async ({ statsCode, page = 1, limit = 10 }, { rejectWithValue }) => {
   try {
-    const res = await fetch(
-      `${API_URL}/stats/${statsCode}?page=${page}&limit=${limit}`,
-    );
-
-    if (!res.ok) {
-      return rejectWithValue('Stats not found');
+    const { data } = await api.get<StatsResponse>(`/stats/${statsCode}`, {
+      params: { page, limit },
+    });
+    return data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      return rejectWithValue(error.response?.data?.message ?? 'Stats not found');
     }
-
-    return res.json();
-  } catch {
     return rejectWithValue('Network error');
   }
 });
 
-export const fetchSummary = createAsyncThunk<
-  StatsSummary,
-  string,
-  { rejectValue: string }
->('stats/fetchSummary', async (statsCode, { rejectWithValue }) => {
-  try {
-    const res = await fetch(`${API_URL}/stats/${statsCode}/summary`);
-
-    if (!res.ok) {
-      return rejectWithValue('Summary not found');
+export const fetchSummary = createAsyncThunk<StatsSummary, string, { rejectValue: string }>(
+  'stats/fetchSummary',
+  async (statsCode, { rejectWithValue }) => {
+    try {
+      const { data } = await api.get<StatsSummary>(`/stats/${statsCode}/summary`);
+      return data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        return rejectWithValue(error.response?.data?.message ?? 'Summary not found');
+      }
+      return rejectWithValue('Network error');
     }
-
-    return res.json();
-  } catch {
-    return rejectWithValue('Network error');
-  }
-});
+  },
+);
 
 const initialState: StatsState = {
   stats: null,

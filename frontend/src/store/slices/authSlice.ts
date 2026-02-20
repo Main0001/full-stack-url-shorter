@@ -1,8 +1,9 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
+import axios from 'axios';
+import api from '@/lib/api';
+import { setTokens, clearTokens } from '@/lib/auth';
 import type { AuthState, AuthResponse } from '@/types';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export const registerUser = createAsyncThunk<
   AuthResponse,
@@ -10,19 +11,14 @@ export const registerUser = createAsyncThunk<
   { rejectValue: string }
 >('auth/register', async (credentials, { rejectWithValue }) => {
   try {
-    const res = await fetch(`${API_URL}/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(credentials),
-    });
-
-    if (!res.ok) {
-      const error = await res.json();
-      return rejectWithValue(error.message ?? 'Registration failed');
+    const { data } = await api.post<AuthResponse>('/auth/register', credentials);
+    setTokens(data.accessToken, data.refreshToken);
+    return data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const message = error.response?.data?.message;
+      return rejectWithValue(Array.isArray(message) ? message[0] : (message ?? 'Registration failed'));
     }
-
-    return res.json();
-  } catch {
     return rejectWithValue('Network error');
   }
 });
@@ -33,54 +29,51 @@ export const loginUser = createAsyncThunk<
   { rejectValue: string }
 >('auth/login', async (credentials, { rejectWithValue }) => {
   try {
-    const res = await fetch(`${API_URL}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(credentials),
-    });
-
-    if (!res.ok) {
-      const error = await res.json();
-      return rejectWithValue(error.message ?? 'Login failed');
+    const { data } = await api.post<AuthResponse>('/auth/login', credentials);
+    setTokens(data.accessToken, data.refreshToken);
+    return data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const message = error.response?.data?.message;
+      return rejectWithValue(Array.isArray(message) ? message[0] : (message ?? 'Login failed'));
     }
-
-    return res.json();
-  } catch {
     return rejectWithValue('Network error');
   }
 });
 
+// Для refresh используем raw axios, чтобы request interceptor не перезаписал
+// refresh token access token-ом из localStorage
 export const refreshTokens = createAsyncThunk<
   Pick<AuthResponse, 'accessToken' | 'refreshToken'>,
   string,
   { rejectValue: string }
 >('auth/refresh', async (refreshToken, { rejectWithValue }) => {
   try {
-    const res = await fetch(`${API_URL}/auth/refresh`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${refreshToken}` },
-    });
-
-    if (!res.ok) {
-      return rejectWithValue('Token refresh failed');
-    }
-
-    return res.json();
+    const { data } = await axios.post<Pick<AuthResponse, 'accessToken' | 'refreshToken'>>(
+      `${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`,
+      null,
+      { headers: { Authorization: `Bearer ${refreshToken}` } },
+    );
+    setTokens(data.accessToken, data.refreshToken);
+    return data;
   } catch {
-    return rejectWithValue('Network error');
+    return rejectWithValue('Token refresh failed');
   }
 });
 
-export const logoutUser = createAsyncThunk<void, string, { rejectValue: string }>(
+export const logoutUser = createAsyncThunk<void, void, { rejectValue: string }>(
   'auth/logout',
-  async (accessToken, { rejectWithValue }) => {
+  async (_, { rejectWithValue }) => {
     try {
-      await fetch(`${API_URL}/auth/logout`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-    } catch {
+      await api.post('/auth/logout');
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        return rejectWithValue('Logout failed');
+      }
       return rejectWithValue('Network error');
+    } finally {
+      // Токены всегда чистим — даже если сервер не ответил
+      clearTokens();
     }
   },
 );

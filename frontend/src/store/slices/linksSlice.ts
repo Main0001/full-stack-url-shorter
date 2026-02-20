@@ -1,74 +1,53 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import axios from 'axios';
+import api from '@/lib/api';
 import type { LinksState, Link } from '@/types';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
-export const fetchLinks = createAsyncThunk<
-  Link[],
-  string,
-  { rejectValue: string }
->('links/fetchAll', async (accessToken, { rejectWithValue }) => {
-  try {
-    const res = await fetch(`${API_URL}/links`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-
-    if (!res.ok) {
-      return rejectWithValue('Failed to fetch links');
+export const fetchLinks = createAsyncThunk<Link[], void, { rejectValue: string }>(
+  'links/fetchAll',
+  async (_, { rejectWithValue }) => {
+    try {
+      const { data } = await api.get<Link[]>('/links');
+      return data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        return rejectWithValue(error.response?.data?.message ?? 'Failed to fetch links');
+      }
+      return rejectWithValue('Network error');
     }
+  },
+);
 
-    return res.json();
-  } catch {
-    return rejectWithValue('Network error');
-  }
-});
-
-export const createLink = createAsyncThunk<
-  Link,
-  { originalUrl: string; accessToken: string },
-  { rejectValue: string }
->('links/create', async ({ originalUrl, accessToken }, { rejectWithValue }) => {
-  try {
-    const res = await fetch(`${API_URL}/links`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({ originalUrl }),
-    });
-
-    if (!res.ok) {
-      const error = await res.json();
-      return rejectWithValue(error.message ?? 'Failed to create link');
+export const createLink = createAsyncThunk<Link, { originalUrl: string }, { rejectValue: string }>(
+  'links/create',
+  async ({ originalUrl }, { rejectWithValue }) => {
+    try {
+      const { data } = await api.post<Link>('/links', { originalUrl });
+      return data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const message = error.response?.data?.message;
+        return rejectWithValue(Array.isArray(message) ? message[0] : (message ?? 'Failed to create link'));
+      }
+      return rejectWithValue('Network error');
     }
+  },
+);
 
-    return res.json();
-  } catch {
-    return rejectWithValue('Network error');
-  }
-});
-
-export const deleteLink = createAsyncThunk<
-  string,
-  { id: string; accessToken: string },
-  { rejectValue: string }
->('links/delete', async ({ id, accessToken }, { rejectWithValue }) => {
-  try {
-    const res = await fetch(`${API_URL}/links/${id}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-
-    if (!res.ok) {
-      return rejectWithValue('Failed to delete link');
+export const deleteLink = createAsyncThunk<string, string, { rejectValue: string }>(
+  'links/delete',
+  async (id, { rejectWithValue }) => {
+    try {
+      await api.delete(`/links/${id}`);
+      return id;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        return rejectWithValue(error.response?.data?.message ?? 'Failed to delete link');
+      }
+      return rejectWithValue('Network error');
     }
-
-    return id;
-  } catch {
-    return rejectWithValue('Network error');
-  }
-});
+  },
+);
 
 const initialState: LinksState = {
   items: [],
