@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 import { RedirectService } from './redirect.service';
-import { RedirectController } from './redirect.controller';
+import { RedirectMiddleware } from './redirect.middleware';
 import { ClicksModule } from '../clicks/clicks.module';
 
 @Module({
   imports: [ClicksModule],
-  controllers: [RedirectController],
-  providers: [RedirectService],
+  providers: [RedirectService, RedirectMiddleware],
+  exports: [RedirectService, RedirectMiddleware],
 })
 export class RedirectModule {}
