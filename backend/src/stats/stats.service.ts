@@ -52,37 +52,52 @@ export class StatsService {
       throw new NotFoundException('Stats not found');
     }
 
-    const [total, byCountry, byBrowser, byOs, byDate] = await Promise.all([
+    const [total, byCountry, byCity, byBrowser, byOs, allClickDates] = await Promise.all([
       this.prisma.click.count({ where: { linkId: link.id } }),
 
       this.prisma.click.groupBy({
         by: ['country'],
         where: { linkId: link.id },
-        _count: { country: true },
+        _count: { _all: true },
         orderBy: { _count: { country: 'desc' } },
+      }),
+
+      this.prisma.click.groupBy({
+        by: ['city'],
+        where: { linkId: link.id },
+        _count: { _all: true },
+        orderBy: { _count: { city: 'desc' } },
       }),
 
       this.prisma.click.groupBy({
         by: ['browser'],
         where: { linkId: link.id },
-        _count: { browser: true },
+        _count: { _all: true },
         orderBy: { _count: { browser: 'desc' } },
       }),
 
       this.prisma.click.groupBy({
         by: ['os'],
         where: { linkId: link.id },
-        _count: { os: true },
+        _count: { _all: true },
         orderBy: { _count: { os: 'desc' } },
       }),
 
-      this.prisma.click.groupBy({
-        by: ['createdAt'],
+      // Fetch raw dates to group by day in memory (groupBy on DateTime groups by exact timestamp)
+      this.prisma.click.findMany({
         where: { linkId: link.id },
-        _count: { createdAt: true },
+        select: { createdAt: true },
         orderBy: { createdAt: 'asc' },
       }),
     ]);
+
+    // Group clicks by calendar day (YYYY-MM-DD)
+    const dateMap = new Map<string, number>();
+    for (const { createdAt } of allClickDates) {
+      const day = createdAt.toISOString().split('T')[0];
+      dateMap.set(day, (dateMap.get(day) ?? 0) + 1);
+    }
+    const byDate = Array.from(dateMap.entries()).map(([date, count]) => ({ date, count }));
 
     return {
       link: {
@@ -92,20 +107,21 @@ export class StatsService {
       total,
       byCountry: byCountry.map((c) => ({
         country: c.country ?? 'Unknown',
-        count: c._count.country,
+        count: c._count._all,
+      })),
+      byCity: byCity.map((c) => ({
+        city: c.city ?? 'Unknown',
+        count: c._count._all,
       })),
       byBrowser: byBrowser.map((b) => ({
         browser: b.browser ?? 'Unknown',
-        count: b._count.browser,
+        count: b._count._all,
       })),
       byOs: byOs.map((o) => ({
         os: o.os ?? 'Unknown',
-        count: o._count.os,
+        count: o._count._all,
       })),
-      byDate: byDate.map((d) => ({
-        date: d.createdAt,
-        count: d._count.createdAt,
-      })),
+      byDate,
     };
   }
 }

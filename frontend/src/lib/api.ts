@@ -64,7 +64,7 @@ api.interceptors.response.use(
 
     if (!refreshToken) {
       clearTokens();
-      window.location.href = '/login';
+      window.dispatchEvent(new CustomEvent('auth:unauthorized'));
       return Promise.reject(error);
     }
 
@@ -87,7 +87,7 @@ api.interceptors.response.use(
     } catch (refreshError) {
       processQueue(refreshError, null);
       clearTokens();
-      window.location.href = '/login';
+      window.dispatchEvent(new CustomEvent('auth:unauthorized'));
       return Promise.reject(refreshError);
     } finally {
       isRefreshing = false;

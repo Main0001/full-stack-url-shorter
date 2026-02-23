@@ -21,6 +21,9 @@ export const envConfig = {
 
   // Geo
   geoTimeout: env.get('GEO_TIMEOUT').default(3000).asIntPositive(), // 3 seconds
+
+  // Security
+  bcryptSaltRounds: env.get('BCRYPT_SALT_ROUNDS').default(10).asIntPositive(),
 };
 
 export type EnvConfig = typeof envConfig;

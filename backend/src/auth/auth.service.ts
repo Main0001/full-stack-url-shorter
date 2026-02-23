@@ -145,7 +145,7 @@ export class AuthService {
   }
 
   async hashData(data: string) {
-    return bcrypt.hash(data, 10);
+    return bcrypt.hash(data, envConfig.bcryptSaltRounds);
   }
 
   async updateRefreshToken(userId: string, refreshToken: string) {

@@ -1,5 +1,6 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
 import { StatsService } from './stats.service';
+import { GetStatsQueryDto } from './dto/get-stats-query.dto';
 
 @Controller('stats')
 export class StatsController {
@@ -8,14 +9,9 @@ export class StatsController {
   @Get(':statsCode')
   getStats(
     @Param('statsCode') statsCode: string,
-    @Query('page') page: string = '1',
-    @Query('limit') limit: string = '10',
+    @Query() query: GetStatsQueryDto,
   ) {
-    return this.statsService.getStatsByStatsCode(
-      statsCode,
-      parseInt(page),
-      parseInt(limit),
-    );
+    return this.statsService.getStatsByStatsCode(statsCode, query.page, query.limit);
   }
 
   @Get(':statsCode/summary')

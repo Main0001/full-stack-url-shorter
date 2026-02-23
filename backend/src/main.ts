@@ -57,7 +57,8 @@ async function bootstrap() {
 
       return res.redirect(302, link.originalUrl);
     } catch {
-      return next();
+      // Link not found — redirect to frontend 404 page
+      return res.redirect(302, `${envConfig.frontendUrl}/not-found`);
     }
   });
 

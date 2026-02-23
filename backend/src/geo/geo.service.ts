@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
+import { envConfig } from '../config/env.config';
 
 export interface GeoData {
   country: string | null;
@@ -30,6 +31,7 @@ export class GeoService {
       const { data } = await firstValueFrom(
         this.httpService.get<IpApiResponse>(
           `http://ip-api.com/json/${ip}?fields=status,country,city`,
+          { timeout: envConfig.geoTimeout },
         ),
       );
 

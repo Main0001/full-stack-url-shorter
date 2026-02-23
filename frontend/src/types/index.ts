@@ -60,6 +60,7 @@ export interface StatsSummary {
   };
   total: number;
   byCountry: { country: string; count: number }[];
+  byCity: { city: string; count: number }[];
   byBrowser: { browser: string; count: number }[];
   byOs: { os: string; count: number }[];
   byDate: { date: string; count: number }[];
