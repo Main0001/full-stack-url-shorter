@@ -1,10 +1,12 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
+import { Eye, EyeOff } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { loginUser } from '@/store/slices/authSlice';
 import { Button } from '@/components/ui/button';
@@ -20,7 +22,7 @@ import {
 
 const schema = z.object({
   email: z.email('Enter a valid email'),
-  password: z.string().min(6, 'Minimum 6 characters'),
+  password: z.string().min(1, 'Enter your password'),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -29,6 +31,7 @@ export function LoginForm() {
   const dispatch = useAppDispatch();
   const router = useRouter();
   const loading = useAppSelector((state) => state.auth.loading);
+  const [showPassword, setShowPassword] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -71,7 +74,16 @@ export function LoginForm() {
             <FormItem>
               <FormLabel>Password</FormLabel>
               <FormControl>
-                <Input type="password" placeholder="••••••" {...field} />
+                <div className="relative">
+                  <Input type={showPassword ? 'text' : 'password'} placeholder="••••••" {...field} />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>
