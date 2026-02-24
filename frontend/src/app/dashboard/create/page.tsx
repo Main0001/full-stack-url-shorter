@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 
 export default function CreateLinkPage() {
   return (
-    <div className="max-w-lg">
+    <div className="w-full max-w-2xl">
       <h1 className="mb-6 text-2xl font-semibold">Create Link</h1>
       <Card>
         <CardHeader>

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 
 export default function DashboardPage() {
   return (
-    <div className="max-w-2xl">
+    <div className="w-full max-w-2xl">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-semibold">My Links</h1>
         <Link href="/dashboard/create">
