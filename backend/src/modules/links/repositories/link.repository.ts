@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Link } from '@prisma/client';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '../../../prisma/prisma.service';
 
 type LinkWithCount = Link & { _count: { clicks: number } };
 

@@ -8,7 +8,7 @@ import * as bcrypt from 'bcrypt';
 import { UserRepository } from './repositories/user.repository';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
-import { envConfig } from '../config/env.config';
+import { envConfig } from '../../config/env.config';
 
 @Injectable()
 export class AuthService {

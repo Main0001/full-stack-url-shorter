@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
-import { envConfig } from '../config/env.config';
+import { envConfig } from '../../config/env.config';
 
 export interface GeoData {
   country: string | null;

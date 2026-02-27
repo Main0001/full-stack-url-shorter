@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { nanoid } from 'nanoid';
 import { LinkRepository } from './repositories/link.repository';
 import { CreateLinkDto } from './dto/create-link.dto';
-import { envConfig } from '../config/env.config';
+import { envConfig } from '../../config/env.config';
 
 @Injectable()
 export class LinksService {

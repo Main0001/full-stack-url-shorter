@@ -3,12 +3,12 @@ import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
-import { AuthModule } from './auth/auth.module';
-import { LinksModule } from './links/links.module';
-import { GeoModule } from './geo/geo.module';
-import { ClicksModule } from './clicks/clicks.module';
-import { RedirectModule } from './redirect/redirect.module';
-import { StatsModule } from './stats/stats.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { LinksModule } from './modules/links/links.module';
+import { GeoModule } from './modules/geo/geo.module';
+import { ClicksModule } from './modules/clicks/clicks.module';
+import { RedirectModule } from './modules/redirect/redirect.module';
+import { StatsModule } from './modules/stats/stats.module';
 
 @Module({
   imports: [

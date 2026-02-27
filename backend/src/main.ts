@@ -3,8 +3,8 @@ import { ValidationPipe } from '@nestjs/common';
 import type { Request, Response, NextFunction } from 'express';
 import { AppModule } from './app.module';
 import { envConfig } from './config/env.config';
-import { RedirectService } from './redirect/redirect.service';
-import { ClicksService } from './clicks/clicks.service';
+import { RedirectService } from './modules/redirect/redirect.service';
+import { ClicksService } from './modules/clicks/clicks.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
