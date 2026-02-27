@@ -1,24 +1,22 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { nanoid } from 'nanoid';
-import { PrismaService } from '../prisma/prisma.service';
+import { LinkRepository } from './repositories/link.repository';
 import { CreateLinkDto } from './dto/create-link.dto';
 import { envConfig } from '../config/env.config';
 
 @Injectable()
 export class LinksService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly linkRepository: LinkRepository) {}
 
   async create(userId: string, dto: CreateLinkDto) {
     const shortCode = nanoid(8);
     const statsCode = nanoid(12);
 
-    const link = await this.prisma.link.create({
-      data: {
-        originalUrl: dto.originalUrl,
-        shortCode,
-        statsCode,
-        userId,
-      },
+    const link = await this.linkRepository.create({
+      originalUrl: dto.originalUrl,
+      shortCode,
+      statsCode,
+      userId,
     });
 
     return {
@@ -33,15 +31,7 @@ export class LinksService {
   }
 
   async findAllByUser(userId: string) {
-    const links = await this.prisma.link.findMany({
-      where: { userId },
-      include: {
-        _count: {
-          select: { clicks: true },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+    const links = await this.linkRepository.findManyByUser(userId);
 
     return links.map((link) => ({
       id: link.id,
@@ -56,14 +46,7 @@ export class LinksService {
   }
 
   async findOne(id: string, userId: string) {
-    const link = await this.prisma.link.findFirst({
-      where: { id, userId },
-      include: {
-        _count: {
-          select: { clicks: true },
-        },
-      },
-    });
+    const link = await this.linkRepository.findByIdAndUserWithCount(id, userId);
 
     if (!link) {
       throw new NotFoundException('Link not found');
@@ -82,17 +65,13 @@ export class LinksService {
   }
 
   async remove(id: string, userId: string) {
-    const link = await this.prisma.link.findFirst({
-      where: { id, userId },
-    });
+    const link = await this.linkRepository.findByIdAndUser(id, userId);
 
     if (!link) {
       throw new NotFoundException('Link not found');
     }
 
-    await this.prisma.link.delete({
-      where: { id },
-    });
+    await this.linkRepository.delete(id);
 
     return { message: 'Link deleted successfully' };
   }

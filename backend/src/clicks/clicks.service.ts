@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { UAParser } from 'ua-parser-js';
-import { PrismaService } from '../prisma/prisma.service';
+import { ClickRepository } from './repositories/click.repository';
 import { GeoService } from '../geo/geo.service';
 
 @Injectable()
 export class ClicksService {
   constructor(
-    private prisma: PrismaService,
-    private geoService: GeoService,
+    private readonly clickRepository: ClickRepository,
+    private readonly geoService: GeoService,
   ) {}
 
   async recordClick(
@@ -23,17 +23,15 @@ export class ClicksService {
 
     const geo = await this.geoService.getGeoByIp(ip);
 
-    await this.prisma.click.create({
-      data: {
-        linkId,
-        ip,
-        browser,
-        os,
-        device,
-        referrer,
-        country: geo.country,
-        city: geo.city,
-      },
+    await this.clickRepository.create({
+      linkId,
+      ip,
+      browser,
+      os,
+      device,
+      referrer,
+      country: geo.country,
+      city: geo.city,
     });
   }
 
@@ -41,13 +39,8 @@ export class ClicksService {
     const skip = (page - 1) * limit;
 
     const [clicks, total] = await Promise.all([
-      this.prisma.click.findMany({
-        where: { linkId },
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: limit,
-      }),
-      this.prisma.click.count({ where: { linkId } }),
+      this.clickRepository.findManyByLink(linkId, skip, limit),
+      this.clickRepository.countByLink(linkId),
     ]);
 
     return {
@@ -61,43 +54,25 @@ export class ClicksService {
 
   async getSummary(linkId: string) {
     const [total, byCountry, byBrowser, byOs] = await Promise.all([
-      this.prisma.click.count({ where: { linkId } }),
-
-      this.prisma.click.groupBy({
-        by: ['country'],
-        where: { linkId },
-        _count: { country: true },
-        orderBy: { _count: { country: 'desc' } },
-      }),
-
-      this.prisma.click.groupBy({
-        by: ['browser'],
-        where: { linkId },
-        _count: { browser: true },
-        orderBy: { _count: { browser: 'desc' } },
-      }),
-
-      this.prisma.click.groupBy({
-        by: ['os'],
-        where: { linkId },
-        _count: { os: true },
-        orderBy: { _count: { os: 'desc' } },
-      }),
+      this.clickRepository.countByLink(linkId),
+      this.clickRepository.groupByCountry(linkId),
+      this.clickRepository.groupByBrowser(linkId),
+      this.clickRepository.groupByOs(linkId),
     ]);
 
     return {
       total,
       byCountry: byCountry.map((c) => ({
         country: c.country ?? 'Unknown',
-        count: c._count.country,
+        count: c._count._all,
       })),
       byBrowser: byBrowser.map((b) => ({
         browser: b.browser ?? 'Unknown',
-        count: b._count.browser,
+        count: b._count._all,
       })),
       byOs: byOs.map((o) => ({
         os: o.os ?? 'Unknown',
-        count: o._count.os,
+        count: o._count._all,
       })),
     };
   }

@@ -1,18 +1,20 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { LinkRepository } from '../links/repositories/link.repository';
+import { ClickRepository } from '../clicks/repositories/click.repository';
 
 @Injectable()
 export class StatsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private readonly linkRepository: LinkRepository,
+    private readonly clickRepository: ClickRepository,
+  ) {}
 
   async getStatsByStatsCode(
     statsCode: string,
     page: number = 1,
     limit: number = 10,
   ) {
-    const link = await this.prisma.link.findUnique({
-      where: { statsCode },
-    });
+    const link = await this.linkRepository.findByStatsCode(statsCode);
 
     if (!link) {
       throw new NotFoundException('Stats not found');
@@ -21,13 +23,8 @@ export class StatsService {
     const skip = (page - 1) * limit;
 
     const [clicks, total] = await Promise.all([
-      this.prisma.click.findMany({
-        where: { linkId: link.id },
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: limit,
-      }),
-      this.prisma.click.count({ where: { linkId: link.id } }),
+      this.clickRepository.findManyByLink(link.id, skip, limit),
+      this.clickRepository.countByLink(link.id),
     ]);
 
     return {
@@ -44,52 +41,21 @@ export class StatsService {
   }
 
   async getSummaryByStatsCode(statsCode: string) {
-    const link = await this.prisma.link.findUnique({
-      where: { statsCode },
-    });
+    const link = await this.linkRepository.findByStatsCode(statsCode);
 
     if (!link) {
       throw new NotFoundException('Stats not found');
     }
 
-    const [total, byCountry, byCity, byBrowser, byOs, allClickDates] = await Promise.all([
-      this.prisma.click.count({ where: { linkId: link.id } }),
-
-      this.prisma.click.groupBy({
-        by: ['country'],
-        where: { linkId: link.id },
-        _count: { _all: true },
-        orderBy: { _count: { country: 'desc' } },
-      }),
-
-      this.prisma.click.groupBy({
-        by: ['city'],
-        where: { linkId: link.id },
-        _count: { _all: true },
-        orderBy: { _count: { city: 'desc' } },
-      }),
-
-      this.prisma.click.groupBy({
-        by: ['browser'],
-        where: { linkId: link.id },
-        _count: { _all: true },
-        orderBy: { _count: { browser: 'desc' } },
-      }),
-
-      this.prisma.click.groupBy({
-        by: ['os'],
-        where: { linkId: link.id },
-        _count: { _all: true },
-        orderBy: { _count: { os: 'desc' } },
-      }),
-
-      // Fetch raw dates to group by day in memory (groupBy on DateTime groups by exact timestamp)
-      this.prisma.click.findMany({
-        where: { linkId: link.id },
-        select: { createdAt: true },
-        orderBy: { createdAt: 'asc' },
-      }),
-    ]);
+    const [total, byCountry, byCity, byBrowser, byOs, allClickDates] =
+      await Promise.all([
+        this.clickRepository.countByLink(link.id),
+        this.clickRepository.groupByCountry(link.id),
+        this.clickRepository.groupByCity(link.id),
+        this.clickRepository.groupByBrowser(link.id),
+        this.clickRepository.groupByOs(link.id),
+        this.clickRepository.findDatesByLink(link.id),
+      ]);
 
     // Group clicks by calendar day (YYYY-MM-DD)
     const dateMap = new Map<string, number>();
@@ -97,7 +63,10 @@ export class StatsService {
       const day = createdAt.toISOString().split('T')[0];
       dateMap.set(day, (dateMap.get(day) ?? 0) + 1);
     }
-    const byDate = Array.from(dateMap.entries()).map(([date, count]) => ({ date, count }));
+    const byDate = Array.from(dateMap.entries()).map(([date, count]) => ({
+      date,
+      count,
+    }));
 
     return {
       link: {
