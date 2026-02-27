@@ -22,6 +22,5 @@ import { StatsModule } from './modules/stats/stats.module';
     RedirectModule,
     StatsModule,
   ],
-
 })
 export class AppModule {}
