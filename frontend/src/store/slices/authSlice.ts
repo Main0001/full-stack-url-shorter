@@ -1,9 +1,17 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, isAnyOf } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import axios from 'axios';
 import api from '@/lib/api';
 import { getRefreshToken, setTokens, clearTokens } from '@/lib/auth';
 import type { AuthState, AuthResponse, User } from '@/types';
+
+function extractApiError(error: unknown, fallback: string): string {
+  if (axios.isAxiosError(error)) {
+    const message = error.response?.data?.message;
+    return Array.isArray(message) ? message[0] : (message ?? fallback);
+  }
+  return 'Network error';
+}
 
 export const registerUser = createAsyncThunk<
   AuthResponse,
@@ -15,11 +23,7 @@ export const registerUser = createAsyncThunk<
     setTokens(data.accessToken, data.refreshToken);
     return data;
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-      const message = error.response?.data?.message;
-      return rejectWithValue(Array.isArray(message) ? message[0] : (message ?? 'Registration failed'));
-    }
-    return rejectWithValue('Network error');
+    return rejectWithValue(extractApiError(error, 'Registration failed'));
   }
 });
 
@@ -33,11 +37,7 @@ export const loginUser = createAsyncThunk<
     setTokens(data.accessToken, data.refreshToken);
     return data;
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-      const message = error.response?.data?.message;
-      return rejectWithValue(Array.isArray(message) ? message[0] : (message ?? 'Login failed'));
-    }
-    return rejectWithValue('Network error');
+    return rejectWithValue(extractApiError(error, 'Login failed'));
   }
 });
 
@@ -136,65 +136,16 @@ const authSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(registerUser.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(registerUser.fulfilled, (state, action) => {
-        state.loading = false;
-        state.user = action.payload.user;
-        state.accessToken = action.payload.accessToken;
-        state.refreshToken = action.payload.refreshToken;
-        state.isAuthenticated = true;
-        state.initialized = true;
-      })
-      .addCase(registerUser.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload ?? 'Registration failed';
-      });
-
-    builder
-      .addCase(loginUser.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(loginUser.fulfilled, (state, action) => {
-        state.loading = false;
-        state.user = action.payload.user;
-        state.accessToken = action.payload.accessToken;
-        state.refreshToken = action.payload.refreshToken;
-        state.isAuthenticated = true;
-        state.initialized = true;
-      })
-      .addCase(loginUser.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload ?? 'Login failed';
-      });
-
-    builder
-      .addCase(refreshTokens.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
       .addCase(refreshTokens.fulfilled, (state, action) => {
         state.loading = false;
         state.accessToken = action.payload.accessToken;
         state.refreshToken = action.payload.refreshToken;
       })
-      .addCase(refreshTokens.rejected, () => {
-        return initialState;
-      });
+      .addCase(refreshTokens.rejected, () => initialState);
 
     builder
-      .addCase(logoutUser.pending, (state) => {
-        state.loading = true;
-      })
-      .addCase(logoutUser.fulfilled, () => {
-        return { ...initialState, initialized: true };
-      })
-      .addCase(logoutUser.rejected, () => {
-        return { ...initialState, initialized: true };
-      });
+      .addCase(logoutUser.fulfilled, () => ({ ...initialState, initialized: true }))
+      .addCase(logoutUser.rejected, () => ({ ...initialState, initialized: true }));
 
     builder
       .addCase(initializeAuth.fulfilled, (state, action) => {
@@ -207,6 +158,34 @@ const authSlice = createSlice({
       .addCase(initializeAuth.rejected, (state) => {
         state.initialized = true;
       });
+
+    builder.addMatcher(
+      isAnyOf(registerUser.pending, loginUser.pending, refreshTokens.pending),
+      (state) => {
+        state.loading = true;
+        state.error = null;
+      },
+    );
+
+    builder.addMatcher(
+      isAnyOf(registerUser.fulfilled, loginUser.fulfilled),
+      (state, action) => {
+        state.loading = false;
+        state.user = action.payload.user;
+        state.accessToken = action.payload.accessToken;
+        state.refreshToken = action.payload.refreshToken;
+        state.isAuthenticated = true;
+        state.initialized = true;
+      },
+    );
+
+    builder.addMatcher(
+      isAnyOf(registerUser.rejected, loginUser.rejected),
+      (state, action) => {
+        state.loading = false;
+        state.error = action.payload ?? 'Auth failed';
+      },
+    );
   },
 });
 
