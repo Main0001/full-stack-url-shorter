@@ -1,8 +1,30 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Link } from '@prisma/client';
 import { nanoid } from 'nanoid';
 import { LinkRepository } from './repositories/link.repository';
 import { CreateLinkDto } from './dto/create-link.dto';
 import { envConfig } from '../../config/env.config';
+
+type LinkWithCount = Link & { _count: { clicks: number } };
+
+function toLinkResponse(link: Link) {
+  return {
+    id: link.id,
+    originalUrl: link.originalUrl,
+    shortUrl: `${envConfig.backendUrl}/${link.shortCode}`,
+    statsUrl: `${envConfig.frontendUrl}/stats/${link.statsCode}`,
+    shortCode: link.shortCode,
+    statsCode: link.statsCode,
+    createdAt: link.createdAt,
+  };
+}
+
+function toLinkWithCountResponse(link: LinkWithCount) {
+  return {
+    ...toLinkResponse(link),
+    clicks: link._count.clicks,
+  };
+}
 
 @Injectable()
 export class LinksService {
@@ -19,30 +41,12 @@ export class LinksService {
       userId,
     });
 
-    return {
-      id: link.id,
-      originalUrl: link.originalUrl,
-      shortUrl: `${envConfig.backendUrl}/${shortCode}`,
-      statsUrl: `${envConfig.frontendUrl}/stats/${statsCode}`,
-      shortCode: link.shortCode,
-      statsCode: link.statsCode,
-      createdAt: link.createdAt,
-    };
+    return toLinkResponse(link);
   }
 
   async findAllByUser(userId: string) {
     const links = await this.linkRepository.findManyByUser(userId);
-
-    return links.map((link) => ({
-      id: link.id,
-      originalUrl: link.originalUrl,
-      shortUrl: `${envConfig.backendUrl}/${link.shortCode}`,
-      statsUrl: `${envConfig.frontendUrl}/stats/${link.statsCode}`,
-      shortCode: link.shortCode,
-      statsCode: link.statsCode,
-      clicks: link._count.clicks,
-      createdAt: link.createdAt,
-    }));
+    return links.map((link) => toLinkWithCountResponse(link));
   }
 
   async findOne(id: string, userId: string) {
@@ -52,16 +56,7 @@ export class LinksService {
       throw new NotFoundException('Link not found');
     }
 
-    return {
-      id: link.id,
-      originalUrl: link.originalUrl,
-      shortUrl: `${envConfig.backendUrl}/${link.shortCode}`,
-      statsUrl: `${envConfig.frontendUrl}/stats/${link.statsCode}`,
-      shortCode: link.shortCode,
-      statsCode: link.statsCode,
-      clicks: link._count.clicks,
-      createdAt: link.createdAt,
-    };
+    return toLinkWithCountResponse(link);
   }
 
   async remove(id: string, userId: string) {
