@@ -5,23 +5,21 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { PrismaService } from '../prisma/prisma.service';
+import { UserRepository } from './repositories/user.repository';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
-import { envConfig } from '../config/env.config';
+import { envConfig } from '../../config/env.config';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private prisma: PrismaService,
-    private jwtService: JwtService,
+    private readonly userRepository: UserRepository,
+    private readonly jwtService: JwtService,
   ) {}
 
   async register(dto: RegisterDto) {
     // Check if user already exists
-    const existingUser = await this.prisma.user.findUnique({
-      where: { email: dto.email },
-    });
+    const existingUser = await this.userRepository.findByEmail(dto.email);
 
     if (existingUser) {
       throw new BadRequestException('User with this email already exists');
@@ -31,11 +29,9 @@ export class AuthService {
     const hashedPassword = await this.hashData(dto.password);
 
     // Create user
-    const user = await this.prisma.user.create({
-      data: {
-        email: dto.email,
-        password: hashedPassword,
-      },
+    const user = await this.userRepository.create({
+      email: dto.email,
+      password: hashedPassword,
     });
 
     // Generate tokens
@@ -55,9 +51,7 @@ export class AuthService {
 
   async login(dto: LoginDto) {
     // Find user
-    const user = await this.prisma.user.findUnique({
-      where: { email: dto.email },
-    });
+    const user = await this.userRepository.findByEmail(dto.email);
 
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
@@ -87,9 +81,7 @@ export class AuthService {
 
   async refresh(userId: string, refreshToken: string) {
     // Find user
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-    });
+    const user = await this.userRepository.findById(userId);
 
     if (!user || !user.refreshToken) {
       throw new UnauthorizedException('Access Denied');
@@ -116,10 +108,7 @@ export class AuthService {
 
   async logout(userId: string) {
     // Remove refresh token from DB
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { refreshToken: null },
-    });
+    await this.userRepository.updateRefreshToken(userId, null);
 
     return { message: 'Logged out successfully' };
   }
@@ -150,10 +139,6 @@ export class AuthService {
 
   async updateRefreshToken(userId: string, refreshToken: string) {
     const hashedRefreshToken = await this.hashData(refreshToken);
-
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { refreshToken: hashedRefreshToken },
-    });
+    await this.userRepository.updateRefreshToken(userId, hashedRefreshToken);
   }
 }
