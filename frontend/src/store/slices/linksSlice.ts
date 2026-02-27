@@ -1,6 +1,6 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import axios from 'axios';
+import { createSlice, createAsyncThunk, isAnyOf } from '@reduxjs/toolkit';
 import api from '@/lib/api';
+import { extractApiError } from '@/lib/apiError';
 import type { LinksState, Link } from '@/types';
 
 export const fetchLinks = createAsyncThunk<Link[], void, { rejectValue: string }>(
@@ -10,10 +10,7 @@ export const fetchLinks = createAsyncThunk<Link[], void, { rejectValue: string }
       const { data } = await api.get<Link[]>('/links');
       return data;
     } catch (error) {
-      if (axios.isAxiosError(error)) {
-        return rejectWithValue(error.response?.data?.message ?? 'Failed to fetch links');
-      }
-      return rejectWithValue('Network error');
+      return rejectWithValue(extractApiError(error, 'Failed to fetch links'));
     }
   },
 );
@@ -25,11 +22,7 @@ export const createLink = createAsyncThunk<Link, { originalUrl: string }, { reje
       const { data } = await api.post<Link>('/links', { originalUrl });
       return data;
     } catch (error) {
-      if (axios.isAxiosError(error)) {
-        const message = error.response?.data?.message;
-        return rejectWithValue(Array.isArray(message) ? message[0] : (message ?? 'Failed to create link'));
-      }
-      return rejectWithValue('Network error');
+      return rejectWithValue(extractApiError(error, 'Failed to create link'));
     }
   },
 );
@@ -41,10 +34,7 @@ export const deleteLink = createAsyncThunk<string, string, { rejectValue: string
       await api.delete(`/links/${id}`);
       return id;
     } catch (error) {
-      if (axios.isAxiosError(error)) {
-        return rejectWithValue(error.response?.data?.message ?? 'Failed to delete link');
-      }
-      return rejectWithValue('Network error');
+      return rejectWithValue(extractApiError(error, 'Failed to delete link'));
     }
   },
 );
@@ -61,46 +51,34 @@ const linksSlice = createSlice({
   reducers: {},
   extraReducers: (builder) => {
     builder
-      .addCase(fetchLinks.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
       .addCase(fetchLinks.fulfilled, (state, action) => {
         state.loading = false;
         state.items = action.payload;
-      })
-      .addCase(fetchLinks.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload ?? 'Failed to fetch links';
-      });
-
-    builder
-      .addCase(createLink.pending, (state) => {
-        state.loading = true;
-        state.error = null;
       })
       .addCase(createLink.fulfilled, (state, action) => {
         state.loading = false;
         state.items.unshift(action.payload);
       })
-      .addCase(createLink.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload ?? 'Failed to create link';
-      });
-
-    builder
-      .addCase(deleteLink.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
       .addCase(deleteLink.fulfilled, (state, action) => {
         state.loading = false;
         state.items = state.items.filter((link) => link.id !== action.payload);
-      })
-      .addCase(deleteLink.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload ?? 'Failed to delete link';
       });
+
+    builder.addMatcher(
+      isAnyOf(fetchLinks.pending, createLink.pending, deleteLink.pending),
+      (state) => {
+        state.loading = true;
+        state.error = null;
+      },
+    );
+
+    builder.addMatcher(
+      isAnyOf(fetchLinks.rejected, createLink.rejected, deleteLink.rejected),
+      (state, action) => {
+        state.loading = false;
+        state.error = action.payload ?? 'Request failed';
+      },
+    );
   },
 });
 

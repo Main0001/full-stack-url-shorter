@@ -2,16 +2,9 @@ import { createSlice, createAsyncThunk, isAnyOf } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import axios from 'axios';
 import api from '@/lib/api';
+import { extractApiError } from '@/lib/apiError';
 import { getRefreshToken, setTokens, clearTokens } from '@/lib/auth';
 import type { AuthState, AuthResponse, User } from '@/types';
-
-function extractApiError(error: unknown, fallback: string): string {
-  if (axios.isAxiosError(error)) {
-    const message = error.response?.data?.message;
-    return Array.isArray(message) ? message[0] : (message ?? fallback);
-  }
-  return 'Network error';
-}
 
 export const registerUser = createAsyncThunk<
   AuthResponse,
